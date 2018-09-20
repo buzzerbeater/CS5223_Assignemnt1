@@ -13,7 +13,7 @@ public class Player implements Serializable {
 	
 	public Player(String playerId) {
 		this.playerId = playerId;
-		//this.position = position;
+		this.position = new Position();
 		this.score = 0;
 	}
 	

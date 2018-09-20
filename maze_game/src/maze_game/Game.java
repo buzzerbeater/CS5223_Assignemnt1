@@ -29,7 +29,7 @@ public class Game implements PlayerRemote{
 	    n = tracker.getSize();
 	    k = tracker.getTreasureNum();
 	    Vector<PlayerRemote> PlayerList = tracker.join(stub);
-	    //System.out.println(PlayerList.size());
+	    System.out.println(PlayerList.size());
 	    primaryServer = queryPrimaryServer(PlayerList);
 	    if(primaryServer == stub) {
 	    	gameState = new GameState(n, k);
@@ -92,7 +92,7 @@ public class Game implements PlayerRemote{
 	
 	public static void main(String args[]) {
 	Game game = new Game();
-	game.Initialize(null, "id");
+	game.Initialize(null, "sh");
 	}
 	
 
