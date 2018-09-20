@@ -4,31 +4,39 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Arrays;
 import java.util.Vector;
 
 public class Game implements PlayerRemote{
 	PlayerRemote primaryServer;
 	PlayerRemote backupServer;
-	PlayerRemote currentPlayer;
+	Player currentPlayer;
 	PlayerRemote stub = null;
 	Tracker tracker;
 	GameState gameState;
+	int n, k;
 	
 	public Game() {
 	}
 	
 	public void Initialize(String ipAddress, String playerId) {
-		//currentPlayer = new Player(playerId);
-		//String ipAddress = (args.length < 1) ? null : args[0];
+		currentPlayer = new Player(playerId);
 		try {
 		stub = (PlayerRemote) UnicastRemoteObject.exportObject(this, 0);
 		Registry registry = LocateRegistry.getRegistry(ipAddress);
 	    tracker = (Tracker) registry.lookup("Tracker");
-	    System.out.println(tracker.getSize());
+	    //System.out.println(tracker.getSize());
+	    n = tracker.getSize();
+	    k = tracker.getTreasureNum();
 	    Vector<PlayerRemote> PlayerList = tracker.join(stub);
-	    System.out.println(PlayerList.size());
-	    //primaryServer = getPrimaryServer(PlayerList);
-	    //myGameState = primaryServer.(playerId);
+	    //System.out.println(PlayerList.size());
+	    primaryServer = queryPrimaryServer(PlayerList);
+	    if(primaryServer == stub) {
+	    	gameState = new GameState(n, k);
+	    	gameState.initialize();
+	    }
+	    gameState = primaryServer.addNewPlayer(currentPlayer);
+	    System.out.println(Arrays.deepToString(gameState.maze));
 		} catch (Exception e) {
 			System.err.println("Client exception: " + e.toString());
 			e.printStackTrace();
@@ -60,8 +68,26 @@ public class Game implements PlayerRemote{
 	}
 	
 	@Override
+	public GameState addNewPlayer(Player player) {
+		gameState.addNewPlayer(player);
+		return gameState;
+	}
+
+	
+	@Override
 	 public void takeMove(int option) {
+		try {
+			gameState = primaryServer.takeMoveServer(option);
+		} catch (Exception e) {
+			System.err.println("Client exception: " + e.toString());
+			e.printStackTrace();
+		}
 		
+	}
+	
+	@Override
+	public GameState takeMoveServer(int option) {
+		return gameState;
 	}
 	
 	public static void main(String args[]) {

@@ -1,13 +1,19 @@
 package maze_game;
 
-public class Player {
+import java.io.Serializable;
+
+public class Player implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
 	String playerId;
 	int score;
 	Position position;
 	
-	public Player(String playerId, Position position) {
+	public Player(String playerId) {
 		this.playerId = playerId;
-		this.position = position;
+		//this.position = position;
 		this.score = 0;
 	}
 	
