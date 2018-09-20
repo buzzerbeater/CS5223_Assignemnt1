@@ -10,8 +10,9 @@ public class GameState {
 	int k;
 	Vector<Player> listOfPlayers;
 	
-	public GameState() {
-		
+	public GameState(int n, int k) {
+		this.n = n;
+		this.k = k;
 	}
 	
 	public void initialize() {
@@ -25,10 +26,6 @@ public class GameState {
 				i = i - 1;
 			}
 		}
-	}
-	
-	public boolean addNewTreasure() {
-		return true;
 	}
 	
 	public boolean addNewTreasure(int x, int y) {
@@ -51,72 +48,51 @@ public class GameState {
 	/*
 	 * Place a player's id in the maze, call this when a new player joins the game
 	 * */
-	public synchronized void addNewPlayer(String playerId) {
+	public synchronized GameState addNewPlayer(String playerId) {
 		Random r = new Random();
 		while (!this.addPlayerInCell(r.nextInt(n), r.nextInt(n), playerId)) {
 			System.out.println("finding a new location for the new player" + playerId);
 		}
+		return this;
+	}
+
+	public synchronized boolean movePlayer(int newX, int newY, Player p) {
+		String playerId = p.getPlayerId();
+	    if (maze[newX][newY] == null) {
+	    	maze[newX][newY] = playerId;
+	    	p.getPosition().setXY(newX, newY);
+	    	return true;
+	    }else if (maze[newX][newY] == "*") {
+	    	collectTreasure(p);
+	    	maze[newX][newY] = playerId;
+	    	p.getPosition().setXY(newX, newY);
+	    	return true;
+	    }
+	    return false;
 	}
 	
-	public synchronized GameState movePlayer(Player p, Character direction) {
+	private synchronized boolean move(int newX, int newY, Player p) {
+		
 		int x = p.getPosition().getX();
 		int y = p.getPosition().getY();
 		
-		int newX, newY;
-		
-		switch (direction){
-		case '1':
-			newX = x;
-			newY = y - 1;
-			move(x, y, newX, newY, p);
-			break;
-		case '2':
-			newX = x + 1;
-			newY = y;
-			move(x, y, newX, newY, p);
-			break;
-		case '3':
-			newX = x;
-			newY = y + 1;
-			move(x, y, newX, newY, p);
-			break;
-		case '4':
-			newX = x - 1;
-			newY = y;
-			move(x, y, newX, newY, p);
-			break;
-		case '9':
-			break;
-		}
-
-		return this;
-	}
-	
-	private synchronized void move(int x, int y, int newX, int newY, Player p) {
 	    if(newX < 0 || newX > n-1 || newY < 0 || newY > n-1) {
-	        return;
+	        return false;
 	      }
 	    
-	    if (maze[newX][newY] == null) {
-	    	maze[newX][newY] = p.getPlayerId();
-	    	this.removeMazeCell(x, y);
-	    	Position position = new Position(newX, newY);
-	    	p.setPosition(position);
+	    if(this.movePlayer(newX, newY,p)) {
+	    	removeMazeCell(x,y);
+	    	return true;
 	    }
-	    
-	    if (maze[newX][newY] == "*") {
-	    	collectTreasure(p);
-	    	this.removeMazeCell(x, y);
-	    	/*
-	    	 * set new position for player
-	    	 * generate a new treasure in a empty cell
-	    	 * 
-	    	 * */
-	    }
+	    return false;
 	}
 	
 	public synchronized void collectTreasure(Player p) {
 		p.addScore(1);
+		Random r = new Random();
+		while(!addNewTreasure(r.nextInt(n), r.nextInt(n))) {
+			System.out.println("Generating a new treasure");
+		}
 	}
 	
 	public synchronized void removeMazeCell(int x, int y) {
