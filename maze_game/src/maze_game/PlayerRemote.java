@@ -5,4 +5,5 @@ import java.rmi.RemoteException;
 
 public interface PlayerRemote extends Remote {
     void takeMove(int option) throws RemoteException;
+    PlayerRemote getPrimaryServer() throws RemoteException;
 }
