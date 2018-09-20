@@ -5,6 +5,12 @@ public class Player {
 	int score;
 	Position position;
 	
+	public Player(String playerId, Position position) {
+		this.playerId = playerId;
+		this.position = position;
+		this.score = 0;
+	}
+	
 	// getter and setter
 	public String getPlayerId() {
 		return playerId;
@@ -28,6 +34,11 @@ public class Player {
 	
 	public void setPosition(Position position) {
 		this.position = position;
+	}
+
+	public int addScore(int scoreDelta) {
+		this.score += scoreDelta;
+		return this.score;
 	}
 	
 }
