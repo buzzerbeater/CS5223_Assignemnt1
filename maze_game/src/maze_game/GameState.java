@@ -45,6 +45,7 @@ public class GameState implements Serializable{
 		String playerId = p.getPlayerId();
 		if (maze[x][y] == null) {
 			maze[x][y] = playerId;
+			p.getPosition().setXY(x, y);
 			return true;
 		}
 		return false;
