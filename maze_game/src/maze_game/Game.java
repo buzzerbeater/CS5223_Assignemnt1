@@ -27,6 +27,8 @@ public class Game implements GameInterface {
 	boolean isBackup = false;
 	public final Object gameStateLock = new Object();
 	
+	MazeGUI gui;
+	
 	private static final Logger LOGGER = Logger.getLogger(Game.class.getSimpleName());
 	
 	public Game() {
@@ -53,7 +55,20 @@ public class Game implements GameInterface {
 		    tracker = (Tracker) registry.lookup("Tracker");
 		    n = tracker.getSize();
 		    k = tracker.getTreasureNum();
-		    contactTracker();
+		    try {
+		    	contactTracker();
+			}catch (Exception e) {
+				LOGGER.info("Why you -----------------------");
+				TimeUnit.MILLISECONDS.sleep(500);
+				try {
+					contactTracker();
+				}catch (Exception e2) {
+					LOGGER.info("Why you again?-----------------------");
+					TimeUnit.MILLISECONDS.sleep(500);
+					contactTracker();
+				}
+			}
+		    
 		    executorService.scheduleAtFixedRate(new KeepAlive(), 0, 500, TimeUnit.MILLISECONDS);
 			} catch (Exception e) {
 			e.printStackTrace();
@@ -67,7 +82,12 @@ public class Game implements GameInterface {
 			gameState = new GameState(n, k);
 		}
 		//synchronized (this) {
+		
 		LOGGER.info("In initalize, primary is ----------" + this.primaryServer.getCurrentPlayer().getPlayerId());
+		//this.gameState = primaryServer.addToGame(this);
+		primaryServer.addToGame(this);
+		this.gameState = primaryServer.getGameState();
+		/**
 		try {
 			this.gameState = primaryServer.addToGame(this);
 		}catch (Exception e) {
@@ -82,37 +102,54 @@ public class Game implements GameInterface {
 				this.gameState = primaryServer.addToGame(this);
 			}
 		}
+		**/
 	    this.gameState.printMaze();
 	    LOGGER.info("Game Initialization done -----------------------");
 		//}
 	}
 	
-	public synchronized GameState addToGame(GameInterface g) throws RemoteException {
-		if (this.listOfGames.size()==1) {
+	public void addToGame(GameInterface g) throws RemoteException {
+
+		LOGGER.info("Add To Game -----------------------");
+		LOGGER.info("Size of listOfGames is "+this.listOfGames.size());
+		/**
+		try {
+			this.backupServer.ping();
+		}catch(Exception e) {
+			LOGGER.info("Assigning " + g.getCurrentPlayer().getPlayerId() + " to be backup");
 			this.promoteToBeBackup(g);
 			this.backupServer = g;
 		}
-		//System.out.println("1");
+		**/
+		synchronized(gameStateLock) {
+			if (this.listOfGames.size()==1) {
+				LOGGER.info("Assigning " + g.getCurrentPlayer().getPlayerId() + " to be backup");
+				this.promoteToBeBackup(g);
+				this.backupServer = g;
+			}
+		
+		
 		LOGGER.info("Primary Server, addToGame Player"+ g.getCurrentPlayer().getPlayerId());
 		
 		this.listOfGames.add(g);
-		//tracker.join(g);
+
 		refreshTracker(listOfGames);
 		this.gameState = primaryServer.addNewPlayer(g.getCurrentPlayer().getPlayerId());
 		this.primaryServer.syncState();
-		return this.gameState;
+		}
+		//return this.gameState;
 	}
 	
-	public GameInterface findPrimary(Vector<GameInterface> PlayerList) throws RemoteException {
+	public GameInterface findPrimary() throws RemoteException {
 		if(isPrimary()) return this;
-		for (int i = 0; i < PlayerList.size(); i++) {
+		for (int i = 0; i < listOfGames.size(); i++) {
 			try {
-			if (PlayerList.get(i).isPrimary())
-				return PlayerList.get(i);
+			if (listOfGames.get(i).isPrimary())
+				return listOfGames.get(i);
 			}catch (Exception e) {
-				System.out.println("In findPrimary, removing "+i);
-				PlayerList.remove(i);
-				i--;
+				System.out.println("In findPrimary, exception "+i);
+				//listOfGames.remove(i);
+				//i--;
 			}
 		}
 		this.isPrimary = true;
@@ -125,7 +162,7 @@ public class Game implements GameInterface {
 		LOGGER.info("Before Contact Tracker, Size is "+this.listOfGames.size());
 		this.listOfGames = tracker.getPlayerList();
 		LOGGER.info("After Contact Tracker, Size is "+this.listOfGames.size());
-		this.primaryServer = this.findPrimary(listOfGames);
+		this.primaryServer = this.findPrimary();
 		//for (int i=0;i<this.listOfGames.size();i++) {
 		//	LOGGER.info("After contacting Tracker: position "+ i + " is " + 
 		//			this.listOfGames.get(i).getCurrentPlayer().getPlayerId());
@@ -137,86 +174,93 @@ public class Game implements GameInterface {
 	
 	public  GameState addNewPlayer(String playerId) {
 		//synchronized (gameStateLock) {
-		if(gameState == null) {
+		if(this.gameState == null) {
 			LOGGER.info("gameState is NULL -----------------------");
 		}
-		gameState.addNewPlayer(playerId);
-		return gameState;
+		this.gameState.addNewPlayer(playerId);
+		return this.gameState;
 
 	}
 
 	@SuppressWarnings("resource")
-	public  void play() {
+	public void play(MazeGUI gui) {
 		
 		Scanner scanner = new Scanner(System.in);
 		String input;
 		int option;
 
 	    while (true) {
-	    	
 	        try {
-	        	
 	          input = scanner.nextLine();
-	          if (input.equals("0")||input.equals("1")||input.equals("2")||input.equals("3")
-	        		  ||input.equals("4")||input.equals("9")) {
+	          if (input.equals("0")||input.equals("1")||input.equals("2")||input.equals("3")||input.equals("4")||input.equals("9")) {
 	        	  option = Integer.parseInt(input);
 		          if (option == 9) {
 		        	  this.primaryServer.removePlayer(this.currentPlayer.getPlayerId());
 		        	  System.exit(0);
 		          }
-		          //System.out.println("Input is " + input);
-		          System.out.println("in method play(), Primary Server now is "+ primaryServer.getCurrentPlayer().getPlayerId());
+		          LOGGER.info("Input is " + input);
+		          //LOGGER.info("in method play(), Primary Server now is "+ primaryServer.getCurrentPlayer().getPlayerId());
+
 		          this.gameState = this.takeMove(option);
+		          //}
 		          System.out.println("----- in play() -----");
 		          this.gameState.printMaze();
 		          this.gameState.printScore();
-
+		          gui.updatePanels(this.gameState);
 	          }
-	          //primaryServer = findPrimary(listOfGames);
-	          
+	          //primaryServer = findPrimary(listOfGames);     
 	         }catch (Exception e) {
 	          return;
 	        }
-	    	
 	    }
 	}
 	
-	public  GameState takeMove(int option) {
-		try {
+	public GameState takeMove(int option) throws RemoteException {
 			//System.out.println("Taking Move, primary server is " + this.primaryServer.getCurrentPlayer().getPlayerId());
 			//System.out.println("Taking Move, current player is " + this.currentPlayer.getPlayerId());
-			if(isPrimary()) {
+			/**
+			if(this.isPrimary()) {
 				//return this.takeMoveServer(option, this.currentPlayer.getPlayerId());
 				this.gameState.move(option, this.currentPlayer.getPlayerId());
 				this.syncState();
-				System.out.println("----- in takeMove -----");
+				LOGGER.info("----- in takeMove -----");
 				this.gameState.printMaze();
 				return gameState;
 			}
-			return this.primaryServer.takeMoveServer(option, this.currentPlayer.getPlayerId());
-		} catch (Exception e) {
+			**/
+			try {
+				if(this.primaryServer.ping()) {
+					return this.primaryServer.takeMoveServer(option, this.currentPlayer.getPlayerId());
+				}
+			}catch (Exception e) {
+				try {
+					TimeUnit.MILLISECONDS.sleep(500);
+					return this.primaryServer.takeMoveServer(option, this.currentPlayer.getPlayerId());
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 			//System.out.println("Client exception: " + e.toString());
 			//e.printStackTrace();
-			return null;
 		}
+			return this.primaryServer.takeMoveServer(option, this.currentPlayer.getPlayerId());
 	}
 
-	public  GameState takeMoveServer(int option, String playerId) throws RemoteException {
-		//System.out.println("In Primary Server, before moving, length is "+gameState.maze.length);
-		synchronized (gameStateLock) {
+	public synchronized GameState takeMoveServer(int option, String playerId) throws RemoteException {
+		LOGGER.info("In Primary, takeMoveServer, option is "+ option +", playerId is "+ playerId);
+		//synchronized (gameStateLock) {
 		if (option == 9) {
 			this.listOfGames.remove(this.indexOfPlayer(playerId));
+			// change to this.remove(idx);
 			this.refreshTracker(listOfGames);
 		}
-		System.out.println("In Primary, takeMoveServer " + this.primaryServer.getCurrentPlayer().getPlayerId() + "");
+		LOGGER.info("In Primary, takeMoveServer " + this.primaryServer.getCurrentPlayer().getPlayerId() + "");
 		//System.err.println("In Primary Server, takeMoveServer Method");
 		this.gameState.move(option, playerId);
 		this.syncState();
 		this.gameState.printMaze();
-		//System.err.println("In Primary Server, after moving");
-		//gameState.printMaze();
 		return gameState;
-		}
+		//}
 	}
 
 	public void refreshTracker(Vector<GameInterface> playerList) throws RemoteException {
@@ -225,7 +269,7 @@ public class Game implements GameInterface {
 	
 	public void promoteToBeBackup(GameInterface p) throws RemoteException {
 		try {
-			TimeUnit.MILLISECONDS.sleep(1000);
+			TimeUnit.MILLISECONDS.sleep(400);
 		} catch (InterruptedException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -238,7 +282,21 @@ public class Game implements GameInterface {
 	}
 	
 	public  void syncState() throws RemoteException {
+		try {
+			if(this.backupServer.ping()) {
+				this.backupServer.syncList(listOfGames);
+				this.backupServer.sync(this.gameState);
+			}
+		}catch (Exception e) {
+			try {
+				TimeUnit.MILLISECONDS.sleep(500);
+			} catch (InterruptedException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
 		
+		/**
 		if(this.backupServer!=null) {
 			//this.backupServer.sync();
 			//this.gameState = this.primaryServer.syncGameState();
@@ -248,6 +306,7 @@ public class Game implements GameInterface {
 			//this.backupServer.getGameState().printMaze();
 			//System.out.println(" ----------------");
 		}
+		**/
 
 	}
 	
@@ -288,9 +347,8 @@ public class Game implements GameInterface {
 	public  void removePlayer(int idx) throws RemoteException {
 		synchronized (gameStateLock) {
 		listOfGames.remove(idx);
-		this.refreshTracker(listOfGames);
+		//this.refreshTracker(listOfGames);
 		this.gameState.removePlayer(idx);
-		//this.syncState();
 		}
 	}
 	
@@ -331,12 +389,15 @@ public class Game implements GameInterface {
 		Game game = new Game();
 		game.init(trackerIpAddress, portNumber, playerId);
 		game.initialize();
-		game.play();
+		//game.play();
+		MazeGUI gui = new MazeGUI(game.currentPlayer, game.gameState);
+		game.play(gui);
 	}
 	
 	private class KeepAlive implements Runnable {
 
 		public KeepAlive() {}	
+		
 		public synchronized void run() {
 			if(Game.this.isPrimary) {
 				runPrimary();
@@ -356,34 +417,34 @@ public class Game implements GameInterface {
 		public void runPrimary() {
 			for (int i=0;i < listOfGames.size(); i++) {
 				try {
+					//LOGGER.info("in runPrimary(), Size is " + listOfGames.size());
 					listOfGames.get(i).ping();
-					//System.out.println("running as primary");		
+					//LOGGER.info("Primary Pinging " + listOfGames.get(i).getCurrentPlayer().getPlayerId());		
 				} catch (Exception e) {
 					try {
-						LOGGER.info("In Primary, Player " + 
-								gameState.getListOfCurrentPlayer().get(i).getPlayerId() + " has crashed");
-
-						//if(i!=1) {
-							Game.this.removePlayer(i);
-							
-						//}
-						
-						if(Game.this.listOfGames.size()>1 && i == 1) {
-							Game.this.promoteToBeBackup(listOfGames.get(1));
-							LOGGER.info("Assigning " + 
-							listOfGames.get(1).getCurrentPlayer().getPlayerId() + " to be backup");
-							i--;
-						}
+						LOGGER.info("In runPrimary, Player " + gameState.getListOfCurrentPlayer().get(i).getPlayerId() + " has crashed");
+						Game.this.removePlayer(i);
 						Game.this.refreshTracker(listOfGames);
+						if(i == 1 && listOfGames.size() > 1) {
+							Game.this.promoteToBeBackup(listOfGames.get(1));
+							LOGGER.info("Assigning " + listOfGames.get(1).getCurrentPlayer().getPlayerId() + " to be backup");
+						}
 						Game.this.syncState();
-						LOGGER.info("Size is " + listOfGames.size());
-						//System.out.println("----------");
-						
+						i--;
 					} catch (RemoteException e1) {
 						System.out.println("Exception in runPrimary() ");
 					}
 				}
 			}
+			
+			/**
+			try {
+				Game.this.refreshTracker(listOfGames);
+			} catch (RemoteException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			**/
 		}
 		
 		public void runBackup() {
@@ -391,28 +452,42 @@ public class Game implements GameInterface {
 				//System.out.println("running as backup");
 				Game.this.primaryServer.ping();
 			}catch (Exception e) {
-				LOGGER.info("In Backup, Primary Server crashed");
+				LOGGER.info("In runBackup, Primary Server crashed");
 				try {
 					Game.this.isPrimary = true;
 					Game.this.isBackup = false;
-					Game.this.listOfGames.remove(0);
-					Game.this.refreshTracker(listOfGames);
-					
+					for (int i=0;i < listOfGames.size(); i++) {
+						try {
+							listOfGames.get(i).ping();
+							//System.out.println("running as primary");
+						} catch (Exception e1) {
+							try {
+								LOGGER.info("In runBackup, Player " + gameState.getListOfCurrentPlayer().get(i).getPlayerId() + " has crashed");
+								Game.this.removePlayer(i);
+								Game.this.refreshTracker(listOfGames);
+								i--;
+							}catch (RemoteException e2) {
+								System.out.println("Exception in runBackup() ");
+							}
+						}
+					}
+					//Game.this.refreshTracker(listOfGames);
+					//Game.this.listOfGames.remove(0);
+
 					//Game.this.contactTracker();
 					//System.out.println("----------");
 					Game.this.primaryServer = Game.this;
 					if(Game.this.gameState == null) {
 						Game.this.gameState = new GameState(tracker.getSize(), tracker.getTreasureNum());
 					}else {
-						Game.this.gameState.removePlayer(0);
+						//Game.this.gameState.removePlayer(0);
 					}
 					if(listOfGames.size()>1) {
 						promoteToBeBackup(listOfGames.get(1));
-						LOGGER.info("Assigning " + 
-						listOfGames.get(1).getCurrentPlayer().getPlayerId() + " to be backup");
-						Game.this.syncState();
+						LOGGER.info("Assigning " + listOfGames.get(1).getCurrentPlayer().getPlayerId() + " to be backup");
+						//Game.this.syncState();
 					}
-					
+					Game.this.syncState();
 				} catch (Exception e1) {
 					e1.printStackTrace();
 					System.out.println("Exception in runBackup() ");

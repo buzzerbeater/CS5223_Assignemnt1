@@ -5,7 +5,8 @@ import java.rmi.RemoteException;
 import java.util.Vector;
 
 public interface GameInterface extends Remote {
-	GameInterface findPrimary(Vector<GameInterface> PlayerList) throws RemoteException;
+	//GameInterface findPrimary(Vector<GameInterface> PlayerList) throws RemoteException;
+	GameInterface findPrimary() throws RemoteException;
 	GameState takeMove(int option) throws RemoteException;
 	GameInterface getPrimaryServer() throws RemoteException;
 	GameState addNewPlayer(String playerId) throws RemoteException;
@@ -15,7 +16,7 @@ public interface GameInterface extends Remote {
 	void setPrimary() throws RemoteException;
 	public boolean isPrimary() throws RemoteException;
 	public boolean isBackup() throws RemoteException;
-	GameState addToGame(GameInterface g) throws RemoteException;
+	void addToGame(GameInterface g) throws RemoteException;
 	void sync(GameState gs) throws RemoteException;
 	void sync() throws RemoteException;
 	public void removePlayer (String playerId) throws RemoteException;
