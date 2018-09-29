@@ -8,21 +8,25 @@ import javax.swing.*;
 
 public class MazeGUI extends JFrame {
 	private static final long serialVersionUID = 1603598738913730098L;
+	private int n;
 	private JPanel mainPanel;
 	private JPanel playerPanel;
 	private JPanel mazePanel;
-	private Vector<String> playerList;
+	private Vector<Player> playerList;
 	private String[][] maze;
 	
-	public MazeGUI() {
-		this.initPanels();
-		this.playerList = this.mockPlayerList();  // TODO: get playerList from game
-		this.populatePlayerPanel();
-		this.maze = this.mockMaze(); // TODO: get maze from game
-		this.populateMazePanel();
+	// Initializations
+	
+	public MazeGUI(Player currentPlayer, GameState gameState) {
+		this.n = gameState.getN();
+		this.initPanels(currentPlayer.getPlayerId());
+		this.playerList = gameState.getListOfCurrentPlayer();
+		this.updatePlayerPanel();
+		this.maze = gameState.getMaze();
+		this.updateMazePanel();
  	}
 	
-	private void initPanels() {
+	private void initPanels(String playerId) {
 		// player panel
 		JPanel playerPanel = new JPanel();
 		playerPanel.setLayout(new BoxLayout(playerPanel, BoxLayout.Y_AXIS));
@@ -30,7 +34,7 @@ public class MazeGUI extends JFrame {
 		this.playerPanel = playerPanel;
 		
 		// maze panel
-		this.mazePanel = new JPanel(new GridLayout(5, 5)); // TODO: use n for initialization
+		this.mazePanel = new JPanel(new GridLayout(this.n, this.n));
 		this.mazePanel.setPreferredSize(new Dimension(500, 500));
 		
 		// main panel / frame
@@ -39,25 +43,27 @@ public class MazeGUI extends JFrame {
 		this.mainPanel.add(this.mazePanel, BorderLayout.CENTER);
 		
 		setContentPane(this.mainPanel);
-		setTitle("current player: test");  // TODO: player id
+		setTitle("current player: " + playerId);
 		pack();
 		setVisible(true);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 	}
 	
-	private void populatePlayerPanel() {
+	private void updatePlayerPanel() {
+		this.playerPanel.removeAll();
 		this.playerPanel.add(new JLabel("Currently " + this.playerList.size() + " player(s):"));
-		for (String playerId: this.playerList) {
-			this.playerPanel.add(new JLabel(playerId));
+		for (Player p: this.playerList) {
+			this.playerPanel.add(new JLabel(p.getPlayerId() + ": " + p.getScore()));
 		}
 		this.playerPanel.revalidate();
 		this.playerPanel.repaint();
 	}
 	
-	private void populateMazePanel() {
-		for (int i = 0; i < 5; i++) {  // TODO: use n
-			for (int j = 0; j < 5; j++) {  // TODO: use n
-				JLabel cell = new JLabel(this.maze[i][j]);
+	private void updateMazePanel() {
+		this.mazePanel.removeAll();
+		for (int i = 0; i < this.n; i++) {
+			for (int j = 0; j < this.n; j++) {
+				JLabel cell = new JLabel(this.maze[i][j], SwingConstants.CENTER);
 				cell.setBorder(BorderFactory.createLineBorder(Color.black));
 				this.mazePanel.add(cell);
 			}
@@ -66,30 +72,12 @@ public class MazeGUI extends JFrame {
 		this.mazePanel.repaint();
 	}
 	
-	private Vector<String> mockPlayerList() {
-		Vector<String> playerList = new Vector<String>();
-		int i = 1;
-		while (i <= 10) {
-			String letter = Character.toString((char)(i+'a'-1));
-			playerList.add(letter + letter);
-			i++;
-		}
-		return playerList;
-	}
+	// Update & Repaint
 	
-	private String[][] mockMaze() {
-		String [][] maze = {
-				{"aa", "", "*", "bb", ""}, 
-				{"cc", "dd", "*", "", ""}, 
-				{"ff", "", "*", "", "ee"}, 
-				{"", "gg", "", "", ""}, 
-				{"", "", "*", "", "*"}
-				};
-		
-		return maze;
+	public void updatePanels(GameState gameState) {
+		this.playerList = gameState.getListOfCurrentPlayer();
+		this.updatePlayerPanel();
+		this.maze = gameState.getMaze();
+		this.updateMazePanel();
 	}
-	
-    public static void main(String[] args) {
-    	new MazeGUI();
-    }
 }

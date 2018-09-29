@@ -146,7 +146,7 @@ public class Game implements GameInterface {
 	}
 
 	@SuppressWarnings("resource")
-	public  void play() {
+	public  void play(MazeGUI gui) {
 		
 		Scanner scanner = new Scanner(System.in);
 		String input;
@@ -170,7 +170,7 @@ public class Game implements GameInterface {
 		          System.out.println("----- in play() -----");
 		          this.gameState.printMaze();
 		          this.gameState.printScore();
-
+		          gui.updatePanels(this.gameState);
 	          }
 	          //primaryServer = findPrimary(listOfGames);
 	          
@@ -331,7 +331,8 @@ public class Game implements GameInterface {
 		Game game = new Game();
 		game.init(trackerIpAddress, portNumber, playerId);
 		game.initialize();
-		game.play();
+		MazeGUI gui = new MazeGUI(game.currentPlayer, game.gameState);
+		game.play(gui);
 	}
 	
 	private class KeepAlive implements Runnable {
