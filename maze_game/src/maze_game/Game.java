@@ -210,7 +210,7 @@ public class Game implements GameInterface {
 	          }
 	          //primaryServer = findPrimary(listOfGames);     
 	         }catch (Exception e) {
-	          return;
+	          //return;
 	        }
 	    }
 	}
