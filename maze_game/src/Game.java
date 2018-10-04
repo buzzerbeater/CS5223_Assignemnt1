@@ -1,5 +1,3 @@
-package maze_game;
-
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
@@ -14,20 +12,18 @@ import java.util.logging.Logger;
 
 public class Game implements GameInterface {
 	//private static final long serialVersionUID = -6454747573584944020L;
-	GameInterface primaryServer;
-	GameInterface backupServer;
-	Player currentPlayer;
-	GameInterface stub = null;
-	Tracker tracker;
-	GameState gameState;
-	int n, k;
-	Vector<GameInterface> listOfGames;
-	ScheduledExecutorService executorService;
-	boolean isPrimary = false;
-	boolean isBackup = false;
+	private GameInterface primaryServer;
+	private GameInterface backupServer;
+	private Player currentPlayer;
+	public GameInterface stub = null;
+	private Tracker tracker;
+	private GameState gameState;
+	private int n, k;
+	private Vector<GameInterface> listOfGames;
+	private ScheduledExecutorService executorService;
+	private boolean isPrimary = false;
+	private boolean isBackup = false;
 	public final Object gameStateLock = new Object();
-	
-	MazeGUI gui;
 	
 	private static final Logger LOGGER = Logger.getLogger(Game.class.getSimpleName());
 	
@@ -36,22 +32,21 @@ public class Game implements GameInterface {
 		executorService = Executors.newSingleThreadScheduledExecutor();
 	}
 	
-	  private static void initLogger() {
-		    LOGGER.setUseParentHandlers(false);
-		    LogFormatter formatter = new LogFormatter();
-		    ConsoleHandler handler = new ConsoleHandler();
-		    handler.setFormatter(formatter);
-		    LOGGER.addHandler(handler);
-		  }
+	private static void initializeLogging() {
+	    LOGGER.setUseParentHandlers(false);
+	    LogFormatter formatter = new LogFormatter();
+	    ConsoleHandler handler = new ConsoleHandler();
+	    handler.setFormatter(formatter);
+	    LOGGER.addHandler(handler);
+	}
 
-	
 	public void init(String ipAddress, int port, String playerId) {
 		LOGGER.info("Game init -----------------------");
 		currentPlayer = new Player(playerId);
 		try {
 			//System.setProperty("java.rmi.server.hostname","192.168.1.124");
 			stub = (GameInterface) UnicastRemoteObject.exportObject(this, 0);
-			Registry registry = LocateRegistry.getRegistry();
+			Registry registry = LocateRegistry.getRegistry(ipAddress, port);
 		    tracker = (Tracker) registry.lookup("Tracker");
 		    n = tracker.getSize();
 		    k = tracker.getTreasureNum();
@@ -81,46 +76,20 @@ public class Game implements GameInterface {
 		if(this.isPrimary) {
 			gameState = new GameState(n, k);
 		}
-		//synchronized (this) {
-		
+
 		LOGGER.info("In initalize, primary is ----------" + this.primaryServer.getCurrentPlayer().getPlayerId());
 		//this.gameState = primaryServer.addToGame(this);
 		primaryServer.addToGame(this);
 		this.gameState = primaryServer.getGameState();
-		/**
-		try {
-			this.gameState = primaryServer.addToGame(this);
-		}catch (Exception e) {
-			LOGGER.info("Sleeping -----------------------");
-			TimeUnit.MILLISECONDS.sleep(500);
-			try {
-				this.gameState = primaryServer.addToGame(this);
-			}catch (Exception e2) {
-				LOGGER.info("Sleeping AGAIN-----------------------");
-				TimeUnit.MILLISECONDS.sleep(500);
-				this.contactTracker();
-				this.gameState = primaryServer.addToGame(this);
-			}
-		}
-		**/
+
 	    this.gameState.printMaze();
 	    LOGGER.info("Game Initialization done -----------------------");
-		//}
 	}
 	
 	public void addToGame(GameInterface g) throws RemoteException {
 
 		LOGGER.info("Add To Game -----------------------");
 		LOGGER.info("Size of listOfGames is "+this.listOfGames.size());
-		/**
-		try {
-			this.backupServer.ping();
-		}catch(Exception e) {
-			LOGGER.info("Assigning " + g.getCurrentPlayer().getPlayerId() + " to be backup");
-			this.promoteToBeBackup(g);
-			this.backupServer = g;
-		}
-		**/
 		synchronized(gameStateLock) {
 			if (this.listOfGames.size()==1) {
 				LOGGER.info("Assigning " + g.getCurrentPlayer().getPlayerId() + " to be backup");
@@ -163,16 +132,11 @@ public class Game implements GameInterface {
 		this.listOfGames = tracker.getPlayerList();
 		LOGGER.info("After Contact Tracker, Size is "+this.listOfGames.size());
 		this.primaryServer = this.findPrimary();
-		//for (int i=0;i<this.listOfGames.size();i++) {
-		//	LOGGER.info("After contacting Tracker: position "+ i + " is " + 
-		//			this.listOfGames.get(i).getCurrentPlayer().getPlayerId());
-		//}
-		LOGGER.info("After contacting Tracker: primary is " + 
-				this.primaryServer.getCurrentPlayer().getPlayerId());
+		LOGGER.info("After contacting Tracker: primary is " + this.primaryServer.getCurrentPlayer().getPlayerId());
 		LOGGER.info("End contactTracker -----------------------");
 	}
 	
-	public  GameState addNewPlayer(String playerId) {
+	public GameState addNewPlayer(String playerId) {
 		//synchronized (gameStateLock) {
 		if(this.gameState == null) {
 			LOGGER.info("gameState is NULL -----------------------");
@@ -199,10 +163,7 @@ public class Game implements GameInterface {
 		        	  System.exit(0);
 		          }
 		          LOGGER.info("Input is " + input);
-		          //LOGGER.info("in method play(), Primary Server now is "+ primaryServer.getCurrentPlayer().getPlayerId());
-
 		          this.gameState = this.takeMove(option);
-		          //}
 		          System.out.println("----- in play() -----");
 		          this.gameState.printMaze();
 		          this.gameState.printScore();
@@ -216,18 +177,6 @@ public class Game implements GameInterface {
 	}
 	
 	public GameState takeMove(int option) throws RemoteException {
-			//System.out.println("Taking Move, primary server is " + this.primaryServer.getCurrentPlayer().getPlayerId());
-			//System.out.println("Taking Move, current player is " + this.currentPlayer.getPlayerId());
-			/**
-			if(this.isPrimary()) {
-				//return this.takeMoveServer(option, this.currentPlayer.getPlayerId());
-				this.gameState.move(option, this.currentPlayer.getPlayerId());
-				this.syncState();
-				LOGGER.info("----- in takeMove -----");
-				this.gameState.printMaze();
-				return gameState;
-			}
-			**/
 			try {
 				if(this.primaryServer.ping()) {
 					return this.primaryServer.takeMoveServer(option, this.currentPlayer.getPlayerId());
@@ -275,13 +224,12 @@ public class Game implements GameInterface {
 			e.printStackTrace();
 		}
 		p.setBackup();
-		//p.contactTracker();
 		this.backupServer = p;
 		this.syncState();
 		
 	}
 	
-	public  void syncState() throws RemoteException {
+	public void syncState() throws RemoteException {
 		try {
 			if(this.backupServer.ping()) {
 				this.backupServer.syncList(listOfGames);
@@ -295,30 +243,13 @@ public class Game implements GameInterface {
 				e1.printStackTrace();
 			}
 		}
+	}
 		
-		/**
-		if(this.backupServer!=null) {
-			//this.backupServer.sync();
-			//this.gameState = this.primaryServer.syncGameState();
-			this.backupServer.syncList(listOfGames);
-			this.backupServer.sync(this.gameState);
-			//System.out.println(" --- Maze After Sync State ---");
-			//this.backupServer.getGameState().printMaze();
-			//System.out.println(" ----------------");
-		}
-		**/
-
-	}
-	
-	public GameState syncGameState() {
-		return this.gameState;
-	}
-	
 	public void sync() throws RemoteException {
 		this.gameState = this.primaryServer.getGameState();
 	}
 	
-	public  void sync(GameState gs) throws RemoteException {
+	public void sync(GameState gs) throws RemoteException {
 		
 		this.gameState = gs;
 		
@@ -338,7 +269,6 @@ public class Game implements GameInterface {
 		synchronized (gameStateLock) {
 		int idx = this.gameState.indexOfPlayer(playerId);
 		listOfGames.remove(idx);
-		this.refreshTracker(listOfGames);
 		this.gameState.removePlayer(playerId);
 		//this.syncState();
 		}
@@ -362,19 +292,16 @@ public class Game implements GameInterface {
 	
 	public void setBackup() { 
 		LOGGER.info("Becoming Backup");
-		this.isBackup = true; }
-	
-	public boolean isBackup() throws RemoteException {
-		return this.isBackup;
+		this.isBackup = true; 
 	}
 	
-	public boolean isPrimary() {
-		return this.isPrimary;
-	}
+	public boolean isBackup() throws RemoteException { return this.isBackup; }
+	
+	public boolean isPrimary() { return this.isPrimary; }
 	
 	private int indexOfPlayer (String playerId) throws RemoteException {
 		int idx = 0;
-		while (!this.listOfGames.get(idx).getCurrentPlayer().getPlayerId().equals(playerId)) { 
+		while (!this.gameState.getListOfCurrentPlayer().get(idx).getPlayerId().equals(playerId)) { 
 			idx ++; 
 		}
 		return idx;
@@ -382,7 +309,7 @@ public class Game implements GameInterface {
 	
 	public static void main(String args[]) throws RemoteException, InterruptedException {
 		LOGGER.info("Game start -----------------------");
-		initLogger();
+		initializeLogging();
 	    String trackerIpAddress = args[0];
 	    int portNumber = Integer.parseInt(args[1]);
 	    String playerId = args[2];
@@ -436,15 +363,6 @@ public class Game implements GameInterface {
 					}
 				}
 			}
-			
-			/**
-			try {
-				Game.this.refreshTracker(listOfGames);
-			} catch (RemoteException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			**/
 		}
 		
 		public void runBackup() {
@@ -471,11 +389,6 @@ public class Game implements GameInterface {
 							}
 						}
 					}
-					//Game.this.refreshTracker(listOfGames);
-					//Game.this.listOfGames.remove(0);
-
-					//Game.this.contactTracker();
-					//System.out.println("----------");
 					Game.this.primaryServer = Game.this;
 					if(Game.this.gameState == null) {
 						Game.this.gameState = new GameState(tracker.getSize(), tracker.getTreasureNum());
@@ -503,11 +416,7 @@ public class Game implements GameInterface {
 			}catch (Exception e) {
 				LOGGER.info("In normal, Primary Server crashed");
 				TimeUnit.MILLISECONDS.sleep(1000);
-				//TimeUnit.MILLISECONDS.sleep(1000);
 				Game.this.contactTracker();
-				
-				//System.out.println("----------");
-				
 				}
 
 			}

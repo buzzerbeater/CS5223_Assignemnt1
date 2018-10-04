@@ -1,19 +1,14 @@
-package maze_game;
-
 import java.io.Serializable;
 import java.util.Random;
 import java.util.Vector;
 
 public class GameState implements Serializable{
 
-	/**
-	 * 
-	 */
 	private static final long serialVersionUID = -8081213284690149009L;
 	public String [][] maze;
 	int n;
 	int k;
-	Vector<Player> listOfCurrentPlayer;
+	private Vector<Player> listOfCurrentPlayer;
 	
 	public GameState(int n, int k) {
 		this.n = n;
@@ -52,11 +47,10 @@ public class GameState implements Serializable{
 		}
 		else 
 			return false;
-	}
+		}
 	}
 	
-	public  boolean addPlayerInCell(int x, int y, Player p) {
-		
+	public boolean addPlayerInCell(int x, int y, Player p) {	
 		String playerId = p.getPlayerId();
 		if (maze[x][y] == null) {
 			maze[x][y] = playerId;
@@ -66,7 +60,7 @@ public class GameState implements Serializable{
 		return false;
 	}
 	
-	public  GameState addNewPlayer(String playerId) {
+	public GameState addNewPlayer(String playerId) {
 		synchronized(this) {
 		Random r = new Random();
 		Player p = new Player(playerId);
@@ -143,7 +137,7 @@ public class GameState implements Serializable{
 		}
 	}
 	
-	public  void collectTreasure(Player p) {
+	public void collectTreasure(Player p) {
 		p.addScore(1);
 		Random r = new Random();
 		while(!addNewTreasure(r.nextInt(n), r.nextInt(n))) {
@@ -155,7 +149,7 @@ public class GameState implements Serializable{
 		maze[x][y] = null;
 	}
 	
-	public  void removePlayer(String playerId) {
+	public void removePlayer(String playerId) {
 		synchronized(this) {
 		int idx = this.indexOfPlayer(playerId);
 		Player p = this.listOfCurrentPlayer.get(idx);

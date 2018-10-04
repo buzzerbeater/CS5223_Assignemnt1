@@ -1,5 +1,3 @@
-package maze_game;
-
 import java.io.Serializable;
 
 public class Player implements Serializable {

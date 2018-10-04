@@ -1,5 +1,3 @@
-package maze_game;
-
 import java.awt.*;
 import java.util.Vector;
 

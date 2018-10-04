@@ -1,5 +1,3 @@
-package maze_game;
-
 import java.io.*;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
