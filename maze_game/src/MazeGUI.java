@@ -11,18 +11,27 @@ public class MazeGUI extends JFrame {
 	private JPanel playerPanel;
 	private JPanel mazePanel;
 	private Vector<Player> playerList;
+	private String primaryId;
+	private String secondaryId;
 	private String[][] maze;
 	
 	// Initializations
 	
-	public MazeGUI(Player currentPlayer, GameState gameState) {
+	public MazeGUI(Player currentPlayer, GameState gameState, String primaryId, String secondaryId) {
 		this.n = gameState.getN();
+		this.setServerStrings(primaryId, secondaryId);
 		this.initPanels(currentPlayer.getPlayerId());
 		this.playerList = gameState.getListOfCurrentPlayer();
 		this.updatePlayerPanel();
 		this.maze = gameState.getMaze();
 		this.updateMazePanel();
  	}
+
+	private void setServerStrings(String primaryId, String secondaryId) {
+		this.primaryId = primaryId;
+		if (secondaryId == null) secondaryId = "";
+		this.secondaryId = secondaryId;
+	}
 	
 	private void initPanels(String playerId) {
 		// player panel
@@ -53,6 +62,8 @@ public class MazeGUI extends JFrame {
 		for (Player p: this.playerList) {
 			this.playerPanel.add(new JLabel(p.getPlayerId() + ": " + p.getScore()));
 		}
+		this.playerPanel.add(new JLabel("Primary Server: " + this.primaryId));
+		this.playerPanel.add(new JLabel("Secondary Server: " + this.secondaryId));
 		this.playerPanel.revalidate();
 		this.playerPanel.repaint();
 	}
@@ -72,8 +83,11 @@ public class MazeGUI extends JFrame {
 	
 	// Update & Repaint
 	
-	public void updatePanels(GameState gameState) {
+	public void updatePanels(GameState gameState, String primaryId, String secondaryId) {
+		System.out.println(primaryId);
+		System.out.println(secondaryId);
 		this.playerList = gameState.getListOfCurrentPlayer();
+		this.setServerStrings(primaryId, secondaryId);
 		this.updatePlayerPanel();
 		this.maze = gameState.getMaze();
 		this.updateMazePanel();
