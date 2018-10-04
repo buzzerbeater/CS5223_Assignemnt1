@@ -80,6 +80,9 @@ public class TrackerImpl implements Tracker {
 		//vec = new Vector<String>();
 		//for (int i=0;i<this.playerList.size();i++) {
 		LOGGER.info("After refresh Tracker: size is " + this.playerList.size());
+		for(GameInterface player:this.playerList){
+			System.out.print(player.getCurrentPlayer().getPlayerId()+" ");
+		}
 		//}
 		System.out.println("---------");
 		}
@@ -93,7 +96,7 @@ public class TrackerImpl implements Tracker {
 		int portNumber = 1099;
 		
 		try {
-			TrackerImpl obj = new TrackerImpl(5, 10);
+			TrackerImpl obj = new TrackerImpl(10, 10);
 		    stub = (Tracker) UnicastRemoteObject.exportObject(obj, 0);
 		    // registry = LocateRegistry.getRegistry();
 		    //registry = LocateRegistry.getRegistry("localhost", portNumber);

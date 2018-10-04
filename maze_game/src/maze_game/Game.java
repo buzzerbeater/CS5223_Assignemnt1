@@ -93,7 +93,7 @@ public class Game implements GameInterface {
 			this.backupServer = g;
 		}
 		//System.out.println("1");
-		LOGGER.info("Primary Server, addToGame Player"+ g.getCurrentPlayer().getPlayerId());
+		LOGGER.info("Primary Server, addToGame Player "+ g.getCurrentPlayer().getPlayerId());
 		
 		this.listOfGames.add(g);
 		//tracker.join(g);
@@ -120,19 +120,51 @@ public class Game implements GameInterface {
 		return this;
 	}
 	
+	public GameInterface findBackup(Vector<GameInterface> PlayerList) throws RemoteException {
+		if(isBackup()) return this;
+		for (int i = 0; i < PlayerList.size(); i++) {
+			try {
+			if (PlayerList.get(i).isBackup())
+				return PlayerList.get(i);
+			}catch (Exception e) {
+				System.out.println("In findBackup, removing "+i);
+				PlayerList.remove(i);
+				i--;
+			}
+		}
+		
+		return null;
+	}
+	
 	public void contactTracker() throws RemoteException {
 		LOGGER.info("Begin contactTracker -----------------------");
 		LOGGER.info("Before Contact Tracker, Size is "+this.listOfGames.size());
 		this.listOfGames = tracker.getPlayerList();
 		LOGGER.info("After Contact Tracker, Size is "+this.listOfGames.size());
 		this.primaryServer = this.findPrimary(listOfGames);
+		this.backupServer = this.primaryServer.getBackupServer();
 		//for (int i=0;i<this.listOfGames.size();i++) {
 		//	LOGGER.info("After contacting Tracker: position "+ i + " is " + 
 		//			this.listOfGames.get(i).getCurrentPlayer().getPlayerId());
 		//}
 		LOGGER.info("After contacting Tracker: primary is " + 
 				this.primaryServer.getCurrentPlayer().getPlayerId());
+		if(this.backupServer != null) {
+			LOGGER.info("After contacting Tracker: backup is " + 
+					this.backupServer.getCurrentPlayer().getPlayerId());
+		} else {
+			LOGGER.info("After contacting Tracker: backup is null");
+		}
+		
 		LOGGER.info("End contactTracker -----------------------");
+	}
+	
+	public Vector<GameInterface> getlistOfGames()throws RemoteException{
+		return this.listOfGames;
+	}
+	
+	public GameInterface getBackupServer()throws RemoteException{
+		return this.backupServer;
 	}
 	
 	public  GameState addNewPlayer(String playerId) {
@@ -224,16 +256,14 @@ public class Game implements GameInterface {
 	}
 	
 	public void promoteToBeBackup(GameInterface p) throws RemoteException {
-		try {
-			TimeUnit.MILLISECONDS.sleep(1000);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+		if(p.ping()) {
+			p.setBackup();
+			this.backupServer = p;
+			this.syncState();
+			LOGGER.info("promote "+p.getCurrentPlayer().getPlayerId()+" to backup server done");
+		} else {
+			LOGGER.info("promote backup server failed");
 		}
-		p.setBackup();
-		//p.contactTracker();
-		this.backupServer = p;
-		this.syncState();
 		
 	}
 	
@@ -302,9 +332,10 @@ public class Game implements GameInterface {
 	
 	public void setPrimary() { this.isPrimary = true; }
 	
-	public void setBackup() { 
+	public void setBackup() {
 		LOGGER.info("Becoming Backup");
-		this.isBackup = true; }
+		this.isBackup = true;
+	}
 	
 	public boolean isBackup() throws RemoteException {
 		return this.isBackup;
@@ -335,14 +366,18 @@ public class Game implements GameInterface {
 	}
 	
 	private class KeepAlive implements Runnable {
-
 		public KeepAlive() {}	
 		public synchronized void run() {
+			try {
+			LOGGER.info("entering keepalive");
 			if(Game.this.isPrimary) {
+				LOGGER.info("entering runPrimary");
 				runPrimary();
 			}else if (Game.this.isBackup) {
+				LOGGER.info("entering runBackup");
 				runBackup();
 			}else {
+				LOGGER.info("entering runNormal");
 				try {
 					runNormalPlayer();
 				} catch (RemoteException e) {
@@ -351,6 +386,10 @@ public class Game implements GameInterface {
 					e.printStackTrace();
 				}
 			}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			
 		}
 		
 		public void runPrimary() {
@@ -372,6 +411,8 @@ public class Game implements GameInterface {
 							Game.this.promoteToBeBackup(listOfGames.get(1));
 							LOGGER.info("Assigning " + 
 							listOfGames.get(1).getCurrentPlayer().getPlayerId() + " to be backup");
+							LOGGER.info("Verify backup server promoted successfully " + 
+									listOfGames.get(1).getCurrentPlayer().getPlayerId() + " is backup: "+listOfGames.get(1).isBackup());
 							i--;
 						}
 						Game.this.refreshTracker(listOfGames);
@@ -389,6 +430,7 @@ public class Game implements GameInterface {
 		public void runBackup() {
 			try {
 				//System.out.println("running as backup");
+				LOGGER.info("In Backup, ping primary server");
 				Game.this.primaryServer.ping();
 			}catch (Exception e) {
 				LOGGER.info("In Backup, Primary Server crashed");
@@ -407,9 +449,12 @@ public class Game implements GameInterface {
 						Game.this.gameState.removePlayer(0);
 					}
 					if(listOfGames.size()>1) {
+						TimeUnit.MILLISECONDS.sleep(600);
 						promoteToBeBackup(listOfGames.get(1));
 						LOGGER.info("Assigning " + 
 						listOfGames.get(1).getCurrentPlayer().getPlayerId() + " to be backup");
+						LOGGER.info("Verify backup server promoted successfully " + 
+								listOfGames.get(1).getCurrentPlayer().getPlayerId() + " is backup: "+listOfGames.get(1).isBackup());
 						Game.this.syncState();
 					}
 					
@@ -421,19 +466,51 @@ public class Game implements GameInterface {
 		}
 		
 		public void runNormalPlayer() throws InterruptedException, RemoteException {
+			//primary server health check
 			try {
 				//System.out.println("running as normal");
 				//System.out.println("Primary Server is " + primaryServer.getCurrentPlayer().getPlayerId());
+				LOGGER.info("In normal, ping primary server");
 				primaryServer.ping();
 			}catch (Exception e) {
 				LOGGER.info("In normal, Primary Server crashed");
-				TimeUnit.MILLISECONDS.sleep(1000);
 				//TimeUnit.MILLISECONDS.sleep(1000);
-				Game.this.contactTracker();
-				
+				//TimeUnit.MILLISECONDS.sleep(1000);
+				//Game.this.contactTracker();
+				Game.this.primaryServer = Game.this.backupServer;
+				LOGGER.info("In normal, contact back server " + primaryServer.getCurrentPlayer().getPlayerId() + " as primary server");
+				Game.this.listOfGames = Game.this.primaryServer.getlistOfGames();
+				Game.this.backupServer = Game.this.primaryServer.getBackupServer();
+				LOGGER.info("In normal, new back server is " + backupServer.getCurrentPlayer().getPlayerId());
 				//System.out.println("----------");
 				
 				}
+			//backup server health check
+			if(Game.this.backupServer != null) {
+				try {
+					//System.out.println("running as normal");
+					//System.out.println("Primary Server is " + primaryServer.getCurrentPlayer().getPlayerId());
+					LOGGER.info("In normal, ping back up server");
+					backupServer.ping();
+				}catch (Exception e) {
+					LOGGER.info("In normal, Backup Server crashed");
+					//TimeUnit.MILLISECONDS.sleep(1000);
+					Game.this.listOfGames = Game.this.primaryServer.getlistOfGames();
+					Game.this.backupServer = Game.this.primaryServer.getBackupServer();
+					LOGGER.info("In normal, new back server is " + backupServer.getCurrentPlayer().getPlayerId());
+					//TimeUnit.MILLISECONDS.sleep(1000);
+				
+				
+					//System.out.println("----------");
+				
+					}
+			} else {
+				LOGGER.info("In normal, backserver is null, try to get from primary server");
+				Game.this.backupServer = Game.this.primaryServer.getBackupServer();
+				if(Game.this.backupServer == null) {
+					LOGGER.info("Back up server is still null");
+				}
+			}
 
 			}
 		}
