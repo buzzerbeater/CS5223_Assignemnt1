@@ -1,5 +1,3 @@
-package maze_game;
-
 import java.io.Serializable;
 
 public class Player implements Serializable {
@@ -7,7 +5,7 @@ public class Player implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
-	String playerId;
+	public String playerId;
 	int score;
 	Position position;
 	
