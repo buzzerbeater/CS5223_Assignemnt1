@@ -14,6 +14,8 @@ public interface GameInterface extends Remote {
 	
 	public GameState takeMoveServer(int option, String playerId) throws RemoteException;
 	
+	public GameInterface getBackup() throws RemoteException;
+	
 	public boolean ping() throws RemoteException;
 	
 	public void setBackup() throws RemoteException;

@@ -109,6 +109,17 @@ public class Game implements GameInterface {
 		//return this.gameState;
 	}
 	
+	public GameInterface getBackup() throws RemoteException{
+		try {
+			if(this.backupServer.ping()) {
+				return this.backupServer;
+			}
+			return null;
+		}catch (Exception e) {
+			return null;
+		}
+	}
+	
 	public GameInterface findPrimary() throws RemoteException {
 		if(isPrimary()) return this;
 		for (int i = 0; i < listOfGames.size(); i++) {
@@ -167,7 +178,9 @@ public class Game implements GameInterface {
 		          System.out.println("----- in play() -----");
 		          this.gameState.printMaze();
 		          this.gameState.printScore();
-		          gui.updatePanels(this.gameState);
+		          String primaryId = this.primaryServer.getCurrentPlayer().getPlayerId();
+		          String backupId = this.primaryServer.getBackup().getCurrentPlayer().getPlayerId();
+		          gui.updatePanels(this.gameState, primaryId, backupId);
 	          }
 	          //primaryServer = findPrimary(listOfGames);     
 	         }catch (Exception e) {
@@ -309,6 +322,7 @@ public class Game implements GameInterface {
 	
 	public static void main(String args[]) throws RemoteException, InterruptedException {
 		LOGGER.info("Game start -----------------------");
+		MazeGUI gui = null;
 		initializeLogging();
 	    String trackerIpAddress = args[0];
 	    int portNumber = Integer.parseInt(args[1]);
@@ -317,7 +331,16 @@ public class Game implements GameInterface {
 		game.init(trackerIpAddress, portNumber, playerId);
 		game.initialize();
 		//game.play();
-		MazeGUI gui = new MazeGUI(game.currentPlayer, game.gameState);
+		String primaryId = game.getPrimaryServer().getCurrentPlayer().getPlayerId();
+		GameInterface backup = game.getPrimaryServer().getBackup();
+		if(backup == null) {
+			MazeGUI gui = new MazeGUI(game.currentPlayer, game.gameState, primaryId, null);
+		}else {
+			String backupId = backup.getCurrentPlayer().getPlayerId();
+			MazeGUI gui = new MazeGUI(game.currentPlayer, game.gameState, primaryId, backupId);
+		}
+        
+		
 		game.play(gui);
 	}
 	

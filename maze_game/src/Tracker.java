@@ -48,7 +48,7 @@ public class Tracker implements TrackerInterface {
 	    handler.setFormatter(formatter);
 	    LOGGER.addHandler(handler);
 	}
-	  
+	
 	public  void refresh(Vector<GameInterface> players) throws RemoteException {
 		//synchronized (this) {
 		LOGGER.info("Tracker refresh -----------------------");
