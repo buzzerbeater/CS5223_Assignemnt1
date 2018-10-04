@@ -179,7 +179,11 @@ public class Game implements GameInterface {
 		          this.gameState.printMaze();
 		          this.gameState.printScore();
 		          String primaryId = this.primaryServer.getCurrentPlayer().getPlayerId();
-		          String backupId = this.primaryServer.getBackup().getCurrentPlayer().getPlayerId();
+			      GameInterface backup = this.getPrimaryServer().getBackup();
+			      String backupId = null;
+			      if(backup != null) {
+			    	  backupId = backup.getCurrentPlayer().getPlayerId();
+				  }
 		          gui.updatePanels(this.gameState, primaryId, backupId);
 	          }
 	          //primaryServer = findPrimary(listOfGames);     
@@ -334,10 +338,10 @@ public class Game implements GameInterface {
 		String primaryId = game.getPrimaryServer().getCurrentPlayer().getPlayerId();
 		GameInterface backup = game.getPrimaryServer().getBackup();
 		if(backup == null) {
-			MazeGUI gui = new MazeGUI(game.currentPlayer, game.gameState, primaryId, null);
+			gui = new MazeGUI(game.currentPlayer, game.gameState, primaryId, null);
 		}else {
 			String backupId = backup.getCurrentPlayer().getPlayerId();
-			MazeGUI gui = new MazeGUI(game.currentPlayer, game.gameState, primaryId, backupId);
+			gui = new MazeGUI(game.currentPlayer, game.gameState, primaryId, backupId);
 		}
         
 		
