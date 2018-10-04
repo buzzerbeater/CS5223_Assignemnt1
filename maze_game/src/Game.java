@@ -16,7 +16,7 @@ public class Game implements GameInterface {
 	private GameInterface backupServer;
 	private Player currentPlayer;
 	public GameInterface stub = null;
-	private Tracker tracker;
+	private TrackerInterface tracker;
 	private GameState gameState;
 	private int n, k;
 	private Vector<GameInterface> listOfGames;
@@ -47,7 +47,7 @@ public class Game implements GameInterface {
 			//System.setProperty("java.rmi.server.hostname","192.168.1.124");
 			stub = (GameInterface) UnicastRemoteObject.exportObject(this, 0);
 			Registry registry = LocateRegistry.getRegistry(ipAddress, port);
-		    tracker = (Tracker) registry.lookup("Tracker");
+		    tracker = (TrackerInterface) registry.lookup("Tracker");
 		    n = tracker.getSize();
 		    k = tracker.getTreasureNum();
 		    try {
