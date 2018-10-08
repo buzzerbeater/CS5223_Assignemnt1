@@ -128,6 +128,12 @@ public class Game implements GameInterface {
 				return listOfGames.get(i);
 			}catch (Exception e) {
 				System.out.println("In findPrimary, exception "+i);
+				try {
+					TimeUnit.MILLISECONDS.sleep(1000);
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
 				//listOfGames.remove(i);
 				//i--;
 			}
