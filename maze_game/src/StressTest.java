@@ -13,7 +13,7 @@ public class StressTest {
 	
 	  private static void initLogger() {
 		    LOGGER.setUseParentHandlers(false);
-		    LogFormatter formatter = new LogFormatter();
+		    printFormatter formatter = new printFormatter();
 		    ConsoleHandler handler = new ConsoleHandler();
 		    handler.setFormatter(formatter);
 		    LOGGER.addHandler(handler);

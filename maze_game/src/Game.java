@@ -34,7 +34,7 @@ public class Game implements GameInterface {
 	
 	private static void initializeLogging() {
 	    LOGGER.setUseParentHandlers(false);
-	    LogFormatter formatter = new LogFormatter();
+	    printFormatter formatter = new printFormatter();
 	    ConsoleHandler handler = new ConsoleHandler();
 	    handler.setFormatter(formatter);
 	    LOGGER.addHandler(handler);
